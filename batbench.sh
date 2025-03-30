@@ -79,7 +79,7 @@ E serão feitos" $2 "registros com um intervalo de 5 minutos entre cada um deles
 	for ((  runs=1 ; runs<=$2-1 ; runs++ )); do # Jogando a saída para o arquivo de Log
 		echo "" >> $Arquivo
 		sleep 300
-		batStatus | tee $Arquivo
+		batStatus | tee -a $Arquivo
 	done
 
 ## Registro de Logs do ./batbench.sh com intervalos personalizados
@@ -100,7 +100,7 @@ E serão feitos" $2 "registros com um intervalo de" $3 "minutos entre cada um de
 	for ((  runs=1 ; runs<=$2-1 ; runs++ )); do # Jogando a saída para o arquivo de Log 
 		echo "" >> $Arquivo
 		sleep $((60 * $3))
-		batStatus | tee $Arquivo
+		batStatus | tee -a $Arquivo
 	done
 
 ## Benchmark da Bateria
