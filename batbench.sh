@@ -18,7 +18,7 @@ batStatus () {
 
 ajudaComandos () {
 	echo "
-Uso: ./bateria.sh [OPÇÕES]
+Uso: ./batbench.sh [OPÇÕES]
 Opções:
 	-l	Registra o estado da Bateria a cada 5 minutos na pasta ~/Logs por algumas vezes.
 	-ut	Registra o estado da Bateria por algumas vezes pelo intervalo definido pelo usuário
@@ -44,12 +44,29 @@ if [ $# -lt 1 ]; then # Se não tiver argumentos, executar o script normalmente
 		exit 1
 fi
 
+## Cálculo de Tempo para o Teste da Bateria
+calcularTempo () {
+	Tempo=$(( $1 - $2 )) ## Pegando a Data do Fim e do Início em Unix Epoch para poder calcular a diferença de tempo em segundos
+
+	Horas=$(( $Tempo / 3600 )) ## Calculando Horas. Pegando o tempo em segundos e dividindo por 3600.
+	Minutos=$(( ($Tempo - $Horas * 3600) / 60 )) ## Calculando os Minutos. Pegando o Tempo, subtrando as horas e multiplicando por 3600 e por fim, dividindo por 60.
+	Segundos=$(( $Tempo % 60 )) ## Calculando os Segundos. Pegando o tempo e extraindo o resto.
+
+	echo -e "${Horas}h:${Minutos}m:${Segundos}s."
+
+}
+
+RegistrarBateria () {
+	acpi -b | gawk -F ',' -P '{ print $2 }' | gawk -P '{ print $1 }' | tr -d '%'
+}
+
+## Registro de Logs do ./batbench.sh
 if [ $1 == "-l" ]; then
 	if [ $# -lt 2 ]; then # Verificando se tem as vezes em que o Log será registrado
 		echo "Faltou o número de vezes em que o estado da Bateria será registrado.
 
-Uso: ./bateria.sh -l [VEZES]
-Exemplo: \"./bateria.sh -l 5\" para fazer cinco registros do estado da Bateria na pasta ~/Logs
+Uso: ./batbench.sh -l [VEZES]
+Exemplo: \"./batbench.sh -l 5\" para fazer cinco registros do estado da Bateria na pasta ~/Logs
 "
 		exit 1
 	fi
@@ -62,15 +79,16 @@ E serão feitos" $2 "registros com um intervalo de 5 minutos entre cada um deles
 	for ((  runs=1 ; runs<=$2-1 ; runs++ )); do # Jogando a saída para o arquivo de Log
 		echo "" >> $Arquivo
 		sleep 300
-		batStatus >> $Arquivo
+		batStatus | tee $Arquivo
 	done
-	
+
+## Registro de Logs do ./batbench.sh com intervalos personalizados
 elif [ $1 == "-ut" ]; then
 	if [ $# -lt 3 ]; then # Verificando se tem as vezes em que o Log será registrado
 		echo "Faltou o número de vezes em que o estado da Bateria será registrado e o intervalo dos registros.
 
-Uso: ./bateria.sh -ut [VEZES] [INTERVALO]
-Exemplo: \"./bateria.sh -ut 5 10\" para fazer cinco registros do estado da Bateria na pasta ~/Logs com um intervalo de 10 minutos a cada registro"
+Uso: ./batbench.sh -ut [VEZES] [INTERVALO]
+Exemplo: \"./batbench.sh -ut 5 10\" para fazer cinco registros do estado da Bateria na pasta ~/Logs com um intervalo de 10 minutos a cada registro"
 		exit 1
 	fi
 	echo "O Log começou a ser gerado em:" `date +"%d-%m-%Y às %H:%M:%S"` "
@@ -82,11 +100,13 @@ E serão feitos" $2 "registros com um intervalo de" $3 "minutos entre cada um de
 	for ((  runs=1 ; runs<=$2-1 ; runs++ )); do # Jogando a saída para o arquivo de Log 
 		echo "" >> $Arquivo
 		sleep $((60 * $3))
-		batStatus >> $Arquivo
+		batStatus | tee $Arquivo
 	done
 
+## Benchmark da Bateria
 elif [ $1 == "-b" ]; then
-	BatBenchAtual=`acpi -b | gawk -F ',' -P '{ print $2 }' | gawk -P '{ print $1 }' | tr -d '%'` # Verificando o Valor atual da Bateria
+	BatBenchAtual=`RegistrarBateria` # Verificando o Valor atual da Bateria
+	BatBenchInicio=$BatBenchAtual
 	
 	if [ $# -lt 2 ]; then # Colocou o valor na hora de dar o comando?
 		BatBench=20 # O valor padrão é 20%, que é a Bateria fraca no Gnome
@@ -96,16 +116,28 @@ elif [ $1 == "-b" ]; then
 	
 	criarLog
 	
-	echo "O Log começou a ser gerado com" $BatBenchAtual"% de Bateria Restante em" `date +"%d-%m-%Y às %H:%M:%S"` " 
-E será feito até" $BatBench"% de Bateria restante com registros num intervalo de um minuto entre eles"
+	Inicio=`date +%s`
+	DataInicio=`date +"%d-%m-%Y às %H:%M:%S"`
+
+	echo -e "\nO Log começou a ser gerado com" $BatBenchAtual"% de Bateria Restante em" $DataInicio "\nE será feito até" $BatBench"% de Bateria restante com registros num intervalo de um minuto entre eles\n"
 	
-	batStatus >> $Arquivo	
+	batStatus | tee -a $Arquivo
 	until [ $BatBenchAtual == $BatBench ]; do # Um Loop para fazer o Log até a porcentagem do -b
-		BatBenchAtual=`acpi -b | gawk -F ',' -P '{ print $2 }' | gawk -P '{ print $1 }' | tr -d '%'`
+		BatBenchAtual=`RegistrarBateria`
 		sleep 60
-		echo "" >> $Arquivo
-		batStatus >> $Arquivo
+		echo "" | tee -a  $Arquivo
+		batStatus | tee -a $Arquivo
+		BatBenchAtual=`RegistrarBateria`
 	done
+
+	DataFinal=`date +"%d-%m-%Y às %H:%M:%S"`
+	Fim=`date +%s`
+	BatBenchFinal=`RegistrarBateria`
+	DuracaoTeste=`calcularTempo $Fim $Inicio`
+
+	echo -e "\n\n[Final do Benchmark] \n- Horário de Início:" $DataInicio "\n- Bateria no Início:" $BatBenchInicio"%\n- Horário de Término:" $DataFinal "\n- Bateria no Final:" $BatBenchFinal"%\n\n[O Teste durou" $DuracaoTeste] | tee -a $Arquivo
+	echo ""
+
 elif [ $1 == "-h" ]; then
 	ajudaComandos
 else
