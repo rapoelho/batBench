@@ -9,8 +9,8 @@ Esse Script tem apenas duas dependências: os pacotes `acpi` e o `upower`. Em al
 O Uso dele é bem simples, com quatro maneiras de usar ele:
 - `batbench.sh`: Esse é o modo mais simples. Ele simplesmente vai demonstrar a porcentagem atual da bateria, o tempo restante e o consumo atual
 - `batbench.sh -l [VEZES]`: Esse é o modo de log do batBench. Ele irá fazer um log no número de vezes que o usuário pediu, na pasta `Logs` que estará na pasta do usuário. E o Script irá registrar os dados a cada cinco minutos.
-- `batbench.sh -ut [VEZES] [INTERVALO]: Uma forma mais flexível do parâmetro `-l`. Esse parâmetro permite que você determine o intervalo entre os registros.
-- `batbench.sh -b [LIMITE]: Esse é o modo de "benchmark". Nesse modo, os registros serão feitos a cada um minuto no arquivo de Log, até chegar na porcentagem desejada. Se não houver nenhuma entrada de porcentagem, o Script irá fazer os registros até a bateria chegar em `20%`.
+- `batbench.sh -ut [VEZES] [INTERVALO]`: Uma forma mais flexível do parâmetro `-l`. Esse parâmetro permite que você determine o intervalo entre os registros.
+- `batbench.sh -b [LIMITE]`: Esse é o modo de "benchmark". Nesse modo, os registros serão feitos a cada um minuto no arquivo de Log, até chegar na porcentagem desejada. Se não houver nenhuma entrada de porcentagem, o Script irá fazer os registros até a bateria chegar em `20%`.
 
 # O Arquivo de Log
 Os registros do Arquivo de Log, terão mais ou menos esse formato: 
